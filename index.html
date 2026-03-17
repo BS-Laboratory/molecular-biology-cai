@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab Molecular Biology - Native HTML5</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #27ae60;
+            --bg: #f4f7f6;
+            --text: #333;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: var(--primary);
+            margin-bottom: 25px;
+            font-weight: 300;
+        }
+
+        .container {
+            display: flex;
+            width: 100%;
+            max-width: 1300px;
+            gap: 25px;
+        }
+
+        .sidebar {
+            flex: 1;
+            max-width: 280px;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+
+        .main-content {
+            flex: 4;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 650px;
+        }
+
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .file-item {
+            padding: 15px;
+            margin-bottom: 12px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+
+        .file-item:hover {
+            background: #e9ecef;
+            transform: translateX(8px);
+            border-left-color: var(--accent);
+        }
+
+        .file-item.active {
+            background: #e8f5e9;
+            color: var(--accent);
+            border-left-color: var(--accent);
+            font-weight: bold;
+        }
+
+        #canvas-container {
+            width: 800px;
+            height: 600px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #animation-title {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: var(--primary);
+            font-size: 1.8em;
+        }
+
+        .info-bar {
+            margin-top: 15px;
+            font-size: 0.85em;
+            color: #888;
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        #error-display {
+            display: none;
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 800px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Molecular Biology Lab Animations</h1>
+
+    <div id="error-display"></div>
+
+    <div class="container">
+        <div class="sidebar">
+            <h3 style="margin-top: 0;">Modules</h3>
+            <ul class="file-list" id="file-list">
+                <!-- Populated by JS -->
+            </ul>
+        </div>
+
+        <div class="main-content">
+            <h2 id="animation-title">Select a Lesson</h2>
+            <div id="canvas-container">
+                <div id="placeholder">Choose an animation to begin the interactive lesson.</div>
+            </div>
+            <div class="info-bar">
+                <span>Native HTML5 Canvas Rendering</span>
+                <span>Powered by <b>swf2js (Local)</b></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Local swf2js Library -->
+    <script src="swf2js.js"></script>
+
+    <script>
+        const files = [
+            { name: "1. PCR", path: "1-PCR.swf" },
+            { name: "2. DNA Replication", path: "2-DNA replication.swf" },
+            { name: "3. Electrophoresis", path: "3-Electrophoresis.swf" },
+            { name: "4. Southern Blotting", path: "4-Southern blotting.swf" },
+            { name: "5. DNA Sequencing", path: "5-DNA sequencing.swf" },
+            { name: "6. DNA Cloning", path: "6-DNA cloning.swf" },
+            { name: "7. Restriction Enzymes", path: "7-Restriction enzymes.swf" }
+        ];
+
+        const listElement = document.getElementById('file-list');
+        const animationTitle = document.getElementById('animation-title');
+        const errorDisplay = document.getElementById('error-display');
+
+        // Check if swf2js loaded
+        window.onload = function() {
+            if (typeof swf2js === 'undefined') {
+                showError("The engine (swf2js.js) was not found in your folder. Please make sure swf2js.js is in the same folder as index.html.");
+            }
+        };
+
+        files.forEach((file) => {
+            const li = document.createElement('li');
+            li.className = 'file-item';
+            li.textContent = file.name;
+            li.onclick = () => loadFile(file, li);
+            listElement.appendChild(li);
+        });
+
+        function showError(msg) {
+            errorDisplay.textContent = msg;
+            errorDisplay.style.display = 'block';
+        }
+
+        function loadFile(file, element) {
+            errorDisplay.style.display = 'none';
+            
+            // Check protocol
+            if (window.location.protocol === 'file:') {
+                showError("CRITICAL: You are opening the file directly. You MUST use a local server (http://localhost:8000) for these animations to work.");
+                return;
+            }
+
+            // Update UI
+            document.querySelectorAll('.file-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            animationTitle.textContent = file.name;
+
+            // Clear container and reset
+            const container = document.getElementById('canvas-container');
+            container.innerHTML = ''; 
+
+            try {
+                // Load via swf2js
+                swf2js.load(file.path, {
+                    tagId: "canvas-container",
+                    width: 800,
+                    height: 600,
+                    bgcolor: "#ffffff"
+                });
+            } catch (e) {
+                console.error(e);
+                showError("Error loading the animation file. Check if '" + file.path + "' exists in the folder.");
+            }
+        }
+    </script>
+</body>
+</html>
